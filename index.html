@@ -1,0 +1,732 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Project Vault</title>
+    
+    <!-- Link to our CSS file for styling -->
+    <link rel="stylesheet" href="style.css">
+    
+    <!-- Google Fonts - Inter (modern, clean font) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Lucide Icons - Beautiful, modern icons (via CDN) -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body>
+    <!-- 
+        APP CONTAINER 
+        Wraps the entire application
+    -->
+    <div class="app-container">
+        
+        <!-- ==================== SIDEBAR ==================== -->
+        <aside class="sidebar" id="sidebar">
+            <!-- Logo/Brand -->
+            <div class="sidebar-header">
+                <div class="logo">
+                    <i data-lucide="vault" class="logo-icon"></i>
+                    <span class="logo-text">Project Vault</span>
+                </div>
+                <!-- Mobile close button -->
+                <button class="sidebar-close-btn" id="sidebarCloseBtn" aria-label="Close sidebar">
+                    <i data-lucide="x"></i>
+                </button>
+            </div>
+            
+            <!-- Navigation Menu -->
+            <nav class="sidebar-nav">
+                <ul class="nav-list">
+                    <!-- Dashboard Link -->
+                    <li class="nav-item">
+                        <a href="#dashboard" class="nav-link active" data-section="dashboard">
+                            <i data-lucide="layout-dashboard"></i>
+                            <span>Dashboard</span>
+                        </a>
+                    </li>
+                    <!-- Projects Link -->
+                    <li class="nav-item">
+                        <a href="#projects" class="nav-link" data-section="projects">
+                            <i data-lucide="folder-kanban"></i>
+                            <span>Projects</span>
+                        </a>
+                    </li>
+                    <!-- Settings Link -->
+                    <li class="nav-item">
+                        <a href="#settings" class="nav-link" data-section="settings">
+                            <i data-lucide="settings"></i>
+                            <span>Settings</span>
+                        </a>
+                    </li>
+                </ul>
+            </nav>
+            
+            <!-- Theme Toggle at bottom of sidebar -->
+            <div class="sidebar-footer">
+                <button class="theme-toggle" id="themeToggle" aria-label="Toggle theme">
+                    <i data-lucide="moon" class="theme-icon-dark"></i>
+                    <i data-lucide="sun" class="theme-icon-light"></i>
+                    <span class="theme-text">Dark Mode</span>
+                </button>
+            </div>
+        </aside>
+        
+        <!-- Sidebar overlay for mobile (dark background when sidebar is open) -->
+        <div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+        <!-- ==================== MAIN CONTENT ==================== -->
+        <main class="main-content">
+            
+            <!-- Top Header Bar -->
+            <header class="top-header">
+                <!-- Mobile menu button (hamburger) -->
+                <button class="mobile-menu-btn" id="mobileMenuBtn" aria-label="Open menu">
+                    <i data-lucide="menu"></i>
+                </button>
+                
+                <!-- Page Title (changes based on current section) -->
+                <h1 class="page-title" id="pageTitle">Dashboard</h1>
+                
+                <!-- Header Actions -->
+                <div class="header-actions">
+                    <!-- Quick Add Project Button (visible on larger screens) -->
+                    <button class="btn btn-primary" id="headerAddBtn">
+                        <i data-lucide="plus"></i>
+                        <span>Add Project</span>
+                    </button>
+                </div>
+            </header>
+
+            <!-- Content Container (holds all sections) -->
+            <div class="content-container">
+                
+                <!-- ========== DASHBOARD SECTION ========== -->
+                <section class="content-section active" id="dashboardSection">
+                    
+                    <!-- Statistics Cards Row -->
+                    <div class="stats-grid">
+                        <!-- Total Projects -->
+                        <div class="stat-card">
+                            <div class="stat-icon total">
+                                <i data-lucide="folder"></i>
+                            </div>
+                            <div class="stat-info">
+                                <span class="stat-value" id="statTotal">0</span>
+                                <span class="stat-label">Total Projects</span>
+                            </div>
+                        </div>
+                        
+                        <!-- Ideas -->
+                        <div class="stat-card">
+                            <div class="stat-icon idea">
+                                <i data-lucide="lightbulb"></i>
+                            </div>
+                            <div class="stat-info">
+                                <span class="stat-value" id="statIdea">0</span>
+                                <span class="stat-label">Ideas</span>
+                            </div>
+                        </div>
+                        
+                        <!-- In Progress -->
+                        <div class="stat-card">
+                            <div class="stat-icon in-progress">
+                                <i data-lucide="loader"></i>
+                            </div>
+                            <div class="stat-info">
+                                <span class="stat-value" id="statInProgress">0</span>
+                                <span class="stat-label">In Progress</span>
+                            </div>
+                        </div>
+                        
+                        <!-- Completed -->
+                        <div class="stat-card">
+                            <div class="stat-icon completed">
+                                <i data-lucide="check-circle"></i>
+                            </div>
+                            <div class="stat-info">
+                                <span class="stat-value" id="statCompleted">0</span>
+                                <span class="stat-label">Completed</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Recent Projects Section -->
+                    <div class="section-block">
+                        <div class="section-header">
+                            <h2 class="section-title">Recent Projects</h2>
+                            <a href="#projects" class="view-all-link" data-section="projects">
+                                View All
+                                <i data-lucide="arrow-right"></i>
+                            </a>
+                        </div>
+                        
+                        <!-- Recent Projects Grid (populated by JavaScript) -->
+                        <div class="projects-grid" id="recentProjectsGrid">
+                            <!-- Project cards will be inserted here by JavaScript -->
+                            
+                            <!-- Empty State (shown when no projects) -->
+                            <div class="empty-state" id="dashboardEmptyState">
+                                <i data-lucide="folder-plus"></i>
+                                <h3>No projects yet</h3>
+                                <p>Create your first project to get started!</p>
+                                <button class="btn btn-primary" id="dashboardAddBtn">
+                                    <i data-lucide="plus"></i>
+                                    Add Project
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Security Reminder Card -->
+                    <div class="info-card">
+                        <div class="info-card-icon">
+                            <i data-lucide="shield-alert"></i>
+                        </div>
+                        <div class="info-card-content">
+                            <h3>Security Reminder</h3>
+                            <p>This app stores <strong>references only</strong>. Never save real passwords or API keys here. Use password managers like Bitwarden for actual secrets.</p>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- ========== PROJECTS SECTION ========== -->
+                <section class="content-section" id="projectsSection">
+                    
+                    <!-- Search and Filter Bar -->
+                    <div class="controls-bar">
+                        <!-- Search Input -->
+                        <div class="search-box">
+                            <i data-lucide="search" class="search-icon"></i>
+                            <input 
+                                type="text" 
+                                class="search-input" 
+                                id="searchInput" 
+                                placeholder="Search projects..."
+                                autocomplete="off"
+                            >
+                            <button class="search-clear" id="searchClear" aria-label="Clear search">
+                                <i data-lucide="x"></i>
+                            </button>
+                        </div>
+                        
+                        <!-- Filter Dropdowns -->
+                        <div class="filter-group">
+                            <!-- Status Filter -->
+                            <div class="filter-select-wrapper">
+                                <select class="filter-select" id="statusFilter">
+                                    <option value="all">All Status</option>
+                                    <option value="idea">💡 Idea</option>
+                                    <option value="in-progress">🚧 In Progress</option>
+                                    <option value="completed">✅ Completed</option>
+                                </select>
+                                <i data-lucide="chevron-down" class="select-arrow"></i>
+                            </div>
+                            
+                            <!-- Tech Stack Filter -->
+                            <div class="filter-select-wrapper">
+                                <select class="filter-select" id="techFilter">
+                                    <option value="all">All Tech</option>
+                                    <!-- Options populated by JavaScript -->
+                                </select>
+                                <i data-lucide="chevron-down" class="select-arrow"></i>
+                            </div>
+                        </div>
+                        
+                        <!-- Add Project Button -->
+                        <button class="btn btn-primary" id="projectsAddBtn">
+                            <i data-lucide="plus"></i>
+                            <span>Add Project</span>
+                        </button>
+                    </div>
+                    
+                    <!-- Projects Grid -->
+                    <div class="projects-grid" id="projectsGrid">
+                        <!-- Project cards will be inserted here by JavaScript -->
+                        
+                        <!-- Empty State -->
+                        <div class="empty-state" id="projectsEmptyState">
+                            <i data-lucide="folder-plus"></i>
+                            <h3>No projects found</h3>
+                            <p>Try adjusting your search or filters, or create a new project.</p>
+                            <button class="btn btn-primary" id="emptyAddBtn">
+                                <i data-lucide="plus"></i>
+                                Add Project
+                            </button>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- ========== SETTINGS SECTION ========== -->
+                <section class="content-section" id="settingsSection">
+                    
+                    <!-- Theme Settings -->
+                    <div class="settings-card">
+                        <div class="settings-card-header">
+                            <i data-lucide="palette"></i>
+                            <h3>Appearance</h3>
+                        </div>
+                        <div class="settings-card-body">
+                            <div class="setting-row">
+                                <div class="setting-info">
+                                    <span class="setting-label">Theme</span>
+                                    <span class="setting-description">Choose between dark and light mode</span>
+                                </div>
+                                <div class="theme-switcher">
+                                    <button class="theme-option active" data-theme="dark">
+                                        <i data-lucide="moon"></i>
+                                        Dark
+                                    </button>
+                                    <button class="theme-option" data-theme="light">
+                                        <i data-lucide="sun"></i>
+                                        Light
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- GitHub Cloud Sync -->
+<div class="settings-card sync-card">
+    <div class="settings-card-header">
+        <i data-lucide="cloud"></i>
+        <h3>Cloud Sync (GitHub Gist)</h3>
+    </div>
+    <div class="settings-card-body">
+        <p class="settings-description">Sync your projects across all devices using GitHub Gist. Your data is stored privately in your GitHub account.</p>
+        
+        <!-- Sync Status -->
+        <div class="sync-status">
+            <div class="sync-status-icon disconnected" id="syncStatusIcon">
+                <i data-lucide="cloud-off"></i>
+            </div>
+            <div class="sync-status-info">
+                <div class="sync-status-title" id="syncStatusTitle">Not Connected</div>
+                <div class="sync-status-text" id="syncStatusText">Set up your GitHub token to enable cloud sync</div>
+            </div>
+        </div>
+        
+        <!-- Token Setup Section (shown when not connected) -->
+        <div id="tokenSection">
+            <div class="token-input-group">
+                <label for="githubTokenInput">GitHub Personal Access Token</label>
+                <div class="token-input-wrapper">
+                    <input 
+                        type="password" 
+                        id="githubTokenInput" 
+                        class="token-input" 
+                        placeholder="ghp_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+                        autocomplete="off"
+                    >
+                    <button type="button" class="token-toggle-btn" id="toggleTokenBtn" aria-label="Toggle visibility">
+                        <i data-lucide="eye"></i>
+                    </button>
+                </div>
+                <div class="token-hint">
+                    <i data-lucide="info"></i>
+                    <span>
+                        Don't have a token? 
+                        <a href="https://github.com/settings/tokens/new?description=Project%20Vault&scopes=gist" target="_blank" rel="noopener">
+                            Create one here
+                        </a> 
+                        (select only "gist" permission)
+                    </span>
+                </div>
+            </div>
+            <button class="btn btn-primary" id="saveTokenBtn">
+                <i data-lucide="save"></i>
+                Save Token
+            </button>
+        </div>
+        
+        <!-- Sync Actions Section (shown when connected) -->
+        <div id="syncActionsSection" style="display: none;">
+            <div class="sync-actions">
+                <button class="btn btn-primary" id="uploadBtn">
+                    <i data-lucide="upload-cloud"></i>
+                    Upload to Cloud
+                </button>
+                <button class="btn btn-secondary" id="downloadBtn">
+                    <i data-lucide="download-cloud"></i>
+                    Download from Cloud
+                </button>
+            </div>
+            
+            <div class="sync-info">
+                <span class="sync-info-label">Last synced</span>
+                <span class="sync-info-value" id="lastSyncInfo">Never</span>
+            </div>
+            
+            <button class="btn btn-outline" id="disconnectBtn">
+                <i data-lucide="unlink"></i>
+                Disconnect GitHub
+            </button>
+        </div>
+    </div>
+</div>
+                    <!-- Data Export -->
+                    <div class="settings-card">
+                        <div class="settings-card-header">
+                            <i data-lucide="download"></i>
+                            <h3>Export Data</h3>
+                        </div>
+                        <div class="settings-card-body">
+                            <p class="settings-description">Download all your project data as a JSON file. Use this for backup or to transfer to another device.</p>
+                            <div class="settings-actions">
+                                <button class="btn btn-secondary" id="exportBtn">
+                                    <i data-lucide="download"></i>
+                                    Export to JSON
+                                </button>
+                                <button class="btn btn-outline" id="copyJsonBtn">
+                                    <i data-lucide="copy"></i>
+                                    Copy to Clipboard
+                                </button>
+                            </div>
+                            <!-- Export Preview -->
+                            <div class="export-preview" id="exportPreview">
+                                <label for="exportTextarea">JSON Preview:</label>
+                                <textarea id="exportTextarea" readonly></textarea>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Data Import -->
+                    <div class="settings-card">
+                        <div class="settings-card-header">
+                            <i data-lucide="upload"></i>
+                            <h3>Import Data</h3>
+                        </div>
+                        <div class="settings-card-body">
+                            <p class="settings-description">Restore your projects from a JSON backup. Warning: This will replace all current data!</p>
+                            <div class="import-area">
+                                <div class="file-drop-zone" id="fileDropZone">
+                                    <i data-lucide="upload-cloud"></i>
+                                    <p>Drag & drop JSON file here, or click to browse</p>
+                                    <input type="file" id="importFileInput" accept=".json" hidden>
+                                </div>
+                                <span class="import-divider">OR</span>
+                                <textarea 
+                                    class="import-textarea" 
+                                    id="importTextarea" 
+                                    placeholder="Paste your JSON data here..."
+                                ></textarea>
+                            </div>
+                            <button class="btn btn-warning" id="importBtn">
+                                <i data-lucide="upload"></i>
+                                Import Data
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- Danger Zone -->
+                    <div class="settings-card danger">
+                        <div class="settings-card-header">
+                            <i data-lucide="alert-triangle"></i>
+                            <h3>Danger Zone</h3>
+                        </div>
+                        <div class="settings-card-body">
+                            <div class="setting-row">
+                                <div class="setting-info">
+                                    <span class="setting-label">Delete All Data</span>
+                                    <span class="setting-description">Permanently remove all projects. This cannot be undone!</span>
+                                </div>
+                                <button class="btn btn-danger" id="deleteAllBtn">
+                                    <i data-lucide="trash-2"></i>
+                                    Delete All
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+            </div><!-- End content-container -->
+        </main><!-- End main-content -->
+    </div><!-- End app-container -->
+
+    <!-- ==================== MODALS ==================== -->
+    
+    <!-- Add/Edit Project Modal -->
+    <div class="modal-overlay" id="projectModal">
+        <div class="modal" role="dialog" aria-labelledby="modalTitle">
+            <!-- Modal Header -->
+            <div class="modal-header">
+                <h2 class="modal-title" id="modalTitle">Add New Project</h2>
+                <button class="modal-close-btn" id="modalCloseBtn" aria-label="Close modal">
+                    <i data-lucide="x"></i>
+                </button>
+            </div>
+            
+            <!-- Modal Body - Scrollable Form -->
+            <div class="modal-body">
+                <form id="projectForm" novalidate>
+                    <!-- Hidden field for project ID (used when editing) -->
+                    <input type="hidden" id="projectId">
+                    
+                    <!-- BASIC INFO GROUP -->
+                    <div class="form-group-title">
+                        <i data-lucide="info"></i>
+                        Basic Information
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="projectName">Project Name *</label>
+                        <input 
+                            type="text" 
+                            id="projectName" 
+                            class="form-input" 
+                            placeholder="My Awesome Project"
+                            required
+                        >
+                        <span class="form-error">Project name is required</span>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="projectDescription">Description</label>
+                        <textarea 
+                            id="projectDescription" 
+                            class="form-input" 
+                            placeholder="Brief description of the project..."
+                            rows="3"
+                        ></textarea>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="projectStatus">Status *</label>
+                        <div class="status-selector">
+                            <label class="status-option">
+                                <input type="radio" name="status" value="idea" checked>
+                                <span class="status-badge idea">
+                                    <i data-lucide="lightbulb"></i>
+                                    Idea
+                                </span>
+                            </label>
+                            <label class="status-option">
+                                <input type="radio" name="status" value="in-progress">
+                                <span class="status-badge in-progress">
+                                    <i data-lucide="loader"></i>
+                                    In Progress
+                                </span>
+                            </label>
+                            <label class="status-option">
+                                <input type="radio" name="status" value="completed">
+                                <span class="status-badge completed">
+                                    <i data-lucide="check-circle"></i>
+                                    Completed
+                                </span>
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <!-- TECH STACK -->
+                    <div class="form-group-title">
+                        <i data-lucide="code-2"></i>
+                        Tech Stack
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="projectTechStack">Technologies (comma-separated)</label>
+                        <input 
+                            type="text" 
+                            id="projectTechStack" 
+                            class="form-input" 
+                            placeholder="HTML, CSS, JavaScript, React..."
+                        >
+                        <span class="form-hint">Enter technologies separated by commas</span>
+                        <!-- Tags preview -->
+                        <div class="tags-preview" id="tagsPreview"></div>
+                    </div>
+                    
+                    <!-- LINKS GROUP -->
+                    <div class="form-group-title">
+                        <i data-lucide="link"></i>
+                        Links
+                    </div>
+                    
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="projectGithub">
+                                <i data-lucide="github"></i>
+                                GitHub URL
+                            </label>
+                            <input 
+                                type="url" 
+                                id="projectGithub" 
+                                class="form-input" 
+                                placeholder="https://github.com/..."
+                            >
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="projectLive">
+                                <i data-lucide="globe"></i>
+                                Live Demo URL
+                            </label>
+                            <input 
+                                type="url" 
+                                id="projectLive" 
+                                class="form-input" 
+                                placeholder="https://..."
+                            >
+                        </div>
+                    </div>
+                    
+                    <!-- ACCOUNTS GROUP -->
+                    <div class="form-group-title">
+                        <i data-lucide="user-circle"></i>
+                        Accounts Used
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="projectGoogleAccount">
+                            <i data-lucide="mail"></i>
+                            Main Google Account
+                        </label>
+                        <input 
+                            type="email" 
+                            id="projectGoogleAccount" 
+                            class="form-input" 
+                            placeholder="youremail@gmail.com"
+                        >
+                    </div>
+                    
+                    <!-- Dynamic Other Accounts Section -->
+                    <div class="form-group">
+                        <label>Other Accounts</label>
+                        <div class="dynamic-list" id="accountsList">
+                            <!-- Account rows will be added here dynamically -->
+                        </div>
+                        <button type="button" class="btn btn-add" id="addAccountBtn">
+                            <i data-lucide="plus-circle"></i>
+                            Add Account
+                        </button>
+                    </div>
+                    
+                    <!-- API / SERVICES GROUP -->
+                    <div class="form-group-title">
+                        <i data-lucide="key"></i>
+                        APIs & Services (References Only!)
+                    </div>
+                    
+                    <div class="form-warning">
+                        <i data-lucide="alert-triangle"></i>
+                        <span>Only store WHERE keys are located, NOT the actual keys!</span>
+                    </div>
+                    
+                    <!-- Dynamic APIs Section -->
+                    <div class="form-group">
+                        <label>API / Service References</label>
+                        <div class="dynamic-list" id="apisList">
+                            <!-- API rows will be added here dynamically -->
+                        </div>
+                        <button type="button" class="btn btn-add" id="addApiBtn">
+                            <i data-lucide="plus-circle"></i>
+                            Add API/Service
+                        </button>
+                    </div>
+                    
+                    <!-- CREDENTIALS & NOTES GROUP -->
+                    <div class="form-group-title">
+                        <i data-lucide="file-text"></i>
+                        Credentials & Notes
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="projectCredentialNote">Credential Reference</label>
+                        <input 
+                            type="text" 
+                            id="projectCredentialNote" 
+                            class="form-input" 
+                            placeholder="e.g., All credentials in Bitwarden folder 'Project X'"
+                        >
+                        <span class="form-hint">Where are all credentials for this project stored?</span>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="projectNotes">Additional Notes</label>
+                        <textarea 
+                            id="projectNotes" 
+                            class="form-input" 
+                            placeholder="Any other notes about this project..."
+                            rows="4"
+                        ></textarea>
+                    </div>
+                </form>
+            </div>
+            
+            <!-- Modal Footer -->
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline" id="modalCancelBtn">Cancel</button>
+                <button type="button" class="btn btn-danger" id="modalDeleteBtn" style="display: none;">
+                    <i data-lucide="trash-2"></i>
+                    Delete
+                </button>
+                <button type="submit" class="btn btn-primary" id="modalSaveBtn" form="projectForm">
+                    <i data-lucide="save"></i>
+                    Save Project
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- View Project Modal (Detail View) -->
+    <div class="modal-overlay" id="viewModal">
+        <div class="modal modal-view" role="dialog" aria-labelledby="viewModalTitle">
+            <!-- Modal Header -->
+            <div class="modal-header">
+                <h2 class="modal-title" id="viewModalTitle">Project Details</h2>
+                <button class="modal-close-btn" id="viewModalCloseBtn" aria-label="Close modal">
+                    <i data-lucide="x"></i>
+                </button>
+            </div>
+            
+            <!-- Modal Body - Project Details -->
+            <div class="modal-body" id="viewModalBody">
+                <!-- Content will be populated by JavaScript -->
+            </div>
+            
+            <!-- Modal Footer -->
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline" id="viewModalClose2Btn">Close</button>
+                <button type="button" class="btn btn-secondary" id="viewEditBtn">
+                    <i data-lucide="edit-3"></i>
+                    Edit
+                </button>
+                <button type="button" class="btn btn-danger" id="viewDeleteBtn">
+                    <i data-lucide="trash-2"></i>
+                    Delete
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Confirm Delete Modal -->
+    <div class="modal-overlay" id="confirmModal">
+        <div class="modal modal-confirm" role="alertdialog" aria-labelledby="confirmTitle">
+            <div class="confirm-icon">
+                <i data-lucide="alert-triangle"></i>
+            </div>
+            <h2 class="confirm-title" id="confirmTitle">Delete Project?</h2>
+            <p class="confirm-message" id="confirmMessage">
+                Are you sure you want to delete this project? This action cannot be undone.
+            </p>
+            <div class="confirm-actions">
+                <button type="button" class="btn btn-outline" id="confirmCancelBtn">Cancel</button>
+                <button type="button" class="btn btn-danger" id="confirmDeleteBtn">
+                    <i data-lucide="trash-2"></i>
+                    Delete
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notification Container -->
+    <div class="toast-container" id="toastContainer">
+        <!-- Toast notifications will appear here -->
+    </div>
+
+    <!-- Link to our JavaScript file (at the end for faster page load) -->
+    <script src="script.js"></script>
+</body>
+</html>
