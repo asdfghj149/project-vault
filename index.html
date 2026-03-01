@@ -5,56 +5,150 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Project Vault</title>
     
-    <!-- Link to our CSS file for styling -->
     <link rel="stylesheet" href="style.css">
     
-    <!-- Google Fonts - Inter (modern, clean font) -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     
-    <!-- Lucide Icons - Beautiful, modern icons (via CDN) -->
     <script src="https://unpkg.com/lucide@latest"></script>
 </head>
 <body>
-    <!-- 
-        APP CONTAINER 
-        Wraps the entire application
-    -->
-    <div class="app-container">
+    
+    <!-- ==================== LOGIN SCREEN ==================== -->
+    <div class="login-container" id="loginContainer">
+        <div class="login-card">
+            <div class="login-header">
+                <div class="login-logo">
+                    <i data-lucide="vault" class="login-logo-icon"></i>
+                </div>
+                <h1 class="login-title">Project Vault</h1>
+                <p class="login-subtitle">Organize your projects, sync across devices</p>
+            </div>
+            
+            <div class="login-body">
+                <!-- Google Sign In -->
+                <button class="btn-google" id="googleSignInBtn">
+                    <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M19.6 10.227c0-.709-.064-1.39-.182-2.045H10v3.868h5.382a4.6 4.6 0 01-1.996 3.018v2.51h3.232c1.891-1.742 2.982-4.305 2.982-7.35z" fill="#4285F4"/>
+                        <path d="M10 20c2.7 0 4.964-.895 6.618-2.423l-3.232-2.509c-.895.6-2.04.955-3.386.955-2.605 0-4.81-1.76-5.595-4.123H1.064v2.59A9.996 9.996 0 0010 20z" fill="#34A853"/>
+                        <path d="M4.405 11.9c-.2-.6-.314-1.24-.314-1.9 0-.66.114-1.3.314-1.9V5.51H1.064A9.996 9.996 0 000 10c0 1.614.386 3.14 1.064 4.49l3.34-2.59z" fill="#FBBC05"/>
+                        <path d="M10 3.977c1.468 0 2.786.505 3.823 1.496l2.868-2.868C14.959.99 12.695 0 10 0 6.09 0 2.71 2.24 1.064 5.51l3.34 2.59C5.19 5.736 7.395 3.977 10 3.977z" fill="#EA4335"/>
+                    </svg>
+                    <span>Continue with Google</span>
+                </button>
+                
+                <div class="login-divider">
+                    <span>or</span>
+                </div>
+                
+                <!-- Email/Password Forms -->
+                
+                <!-- Sign Up Form -->
+                <form class="login-form" id="signupForm">
+                    <div class="form-group">
+                        <label for="signupEmail">Email</label>
+                        <input 
+                            type="email" 
+                            id="signupEmail" 
+                            class="form-input" 
+                            placeholder="your@email.com"
+                            required
+                        >
+                    </div>
+                    <div class="form-group">
+                        <label for="signupPassword">Password</label>
+                        <input 
+                            type="password" 
+                            id="signupPassword" 
+                            class="form-input" 
+                            placeholder="At least 6 characters"
+                            minlength="6"
+                            required
+                        >
+                    </div>
+                    <button type="submit" class="btn btn-primary btn-block" id="signupBtn">
+                        Create Account
+                    </button>
+                </form>
+                
+                <!-- Sign In Form (Initially Hidden) -->
+                <form class="login-form" id="signinForm" style="display: none;">
+                    <div class="form-group">
+                        <label for="signinEmail">Email</label>
+                        <input 
+                            type="email" 
+                            id="signinEmail" 
+                            class="form-input" 
+                            placeholder="your@email.com"
+                            required
+                        >
+                    </div>
+                    <div class="form-group">
+                        <label for="signinPassword">Password</label>
+                        <input 
+                            type="password" 
+                            id="signinPassword" 
+                            class="form-input" 
+                            placeholder="Your password"
+                            required
+                        >
+                    </div>
+                    <button type="submit" class="btn btn-primary btn-block" id="signinBtn">
+                        Sign In
+                    </button>
+                </form>
+                
+                <!-- Toggle between Sign Up / Sign In -->
+                <div class="login-toggle">
+                    <span id="toggleText">Already have an account?</span>
+                    <button type="button" class="login-toggle-btn" id="toggleFormBtn">Sign In</button>
+                </div>
+                
+                <!-- Loading indicator -->
+                <div class="login-loading" id="loginLoading" style="display: none;">
+                    <i data-lucide="loader" class="spin-icon"></i>
+                    <span>Signing in...</span>
+                </div>
+                
+                <!-- Error message -->
+                <div class="login-error" id="loginError" style="display: none;">
+                    <i data-lucide="alert-circle"></i>
+                    <span id="loginErrorText">Error message here</span>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- ==================== MAIN APP (Hidden until logged in) ==================== -->
+    <div class="app-container" id="appContainer" style="display: none;">
         
-        <!-- ==================== SIDEBAR ==================== -->
+        <!-- SIDEBAR -->
         <aside class="sidebar" id="sidebar">
-            <!-- Logo/Brand -->
             <div class="sidebar-header">
                 <div class="logo">
                     <i data-lucide="vault" class="logo-icon"></i>
                     <span class="logo-text">Project Vault</span>
                 </div>
-                <!-- Mobile close button -->
                 <button class="sidebar-close-btn" id="sidebarCloseBtn" aria-label="Close sidebar">
                     <i data-lucide="x"></i>
                 </button>
             </div>
             
-            <!-- Navigation Menu -->
             <nav class="sidebar-nav">
                 <ul class="nav-list">
-                    <!-- Dashboard Link -->
                     <li class="nav-item">
                         <a href="#dashboard" class="nav-link active" data-section="dashboard">
                             <i data-lucide="layout-dashboard"></i>
                             <span>Dashboard</span>
                         </a>
                     </li>
-                    <!-- Projects Link -->
                     <li class="nav-item">
                         <a href="#projects" class="nav-link" data-section="projects">
                             <i data-lucide="folder-kanban"></i>
                             <span>Projects</span>
                         </a>
                     </li>
-                    <!-- Settings Link -->
                     <li class="nav-item">
                         <a href="#settings" class="nav-link" data-section="settings">
                             <i data-lucide="settings"></i>
@@ -64,8 +158,17 @@
                 </ul>
             </nav>
             
-            <!-- Theme Toggle at bottom of sidebar -->
+            <!-- User Profile -->
             <div class="sidebar-footer">
+                <div class="user-profile">
+                    <div class="user-avatar" id="userAvatar">
+                        <i data-lucide="user"></i>
+                    </div>
+                    <div class="user-info">
+                        <div class="user-name" id="userName">User Name</div>
+                        <div class="user-email" id="userEmail">user@email.com</div>
+                    </div>
+                </div>
                 <button class="theme-toggle" id="themeToggle" aria-label="Toggle theme">
                     <i data-lucide="moon" class="theme-icon-dark"></i>
                     <i data-lucide="sun" class="theme-icon-light"></i>
@@ -74,25 +177,19 @@
             </div>
         </aside>
         
-        <!-- Sidebar overlay for mobile (dark background when sidebar is open) -->
         <div class="sidebar-overlay" id="sidebarOverlay"></div>
 
-        <!-- ==================== MAIN CONTENT ==================== -->
+        <!-- MAIN CONTENT -->
         <main class="main-content">
             
-            <!-- Top Header Bar -->
             <header class="top-header">
-                <!-- Mobile menu button (hamburger) -->
                 <button class="mobile-menu-btn" id="mobileMenuBtn" aria-label="Open menu">
                     <i data-lucide="menu"></i>
                 </button>
                 
-                <!-- Page Title (changes based on current section) -->
                 <h1 class="page-title" id="pageTitle">Dashboard</h1>
                 
-                <!-- Header Actions -->
                 <div class="header-actions">
-                    <!-- Quick Add Project Button (visible on larger screens) -->
                     <button class="btn btn-primary" id="headerAddBtn">
                         <i data-lucide="plus"></i>
                         <span>Add Project</span>
@@ -100,15 +197,12 @@
                 </div>
             </header>
 
-            <!-- Content Container (holds all sections) -->
             <div class="content-container">
                 
-                <!-- ========== DASHBOARD SECTION ========== -->
+                <!-- DASHBOARD SECTION -->
                 <section class="content-section active" id="dashboardSection">
                     
-                    <!-- Statistics Cards Row -->
                     <div class="stats-grid">
-                        <!-- Total Projects -->
                         <div class="stat-card">
                             <div class="stat-icon total">
                                 <i data-lucide="folder"></i>
@@ -119,7 +213,6 @@
                             </div>
                         </div>
                         
-                        <!-- Ideas -->
                         <div class="stat-card">
                             <div class="stat-icon idea">
                                 <i data-lucide="lightbulb"></i>
@@ -130,7 +223,6 @@
                             </div>
                         </div>
                         
-                        <!-- In Progress -->
                         <div class="stat-card">
                             <div class="stat-icon in-progress">
                                 <i data-lucide="loader"></i>
@@ -141,7 +233,6 @@
                             </div>
                         </div>
                         
-                        <!-- Completed -->
                         <div class="stat-card">
                             <div class="stat-icon completed">
                                 <i data-lucide="check-circle"></i>
@@ -153,7 +244,6 @@
                         </div>
                     </div>
                     
-                    <!-- Recent Projects Section -->
                     <div class="section-block">
                         <div class="section-header">
                             <h2 class="section-title">Recent Projects</h2>
@@ -163,11 +253,7 @@
                             </a>
                         </div>
                         
-                        <!-- Recent Projects Grid (populated by JavaScript) -->
                         <div class="projects-grid" id="recentProjectsGrid">
-                            <!-- Project cards will be inserted here by JavaScript -->
-                            
-                            <!-- Empty State (shown when no projects) -->
                             <div class="empty-state" id="dashboardEmptyState">
                                 <i data-lucide="folder-plus"></i>
                                 <h3>No projects yet</h3>
@@ -180,24 +266,21 @@
                         </div>
                     </div>
                     
-                    <!-- Security Reminder Card -->
                     <div class="info-card">
                         <div class="info-card-icon">
-                            <i data-lucide="shield-alert"></i>
+                            <i data-lucide="cloud-check"></i>
                         </div>
                         <div class="info-card-content">
-                            <h3>Security Reminder</h3>
-                            <p>This app stores <strong>references only</strong>. Never save real passwords or API keys here. Use password managers like Bitwarden for actual secrets.</p>
+                            <h3>Auto-Sync Enabled</h3>
+                            <p>Your projects are automatically synced to the cloud. Access them from any device by signing in with your account.</p>
                         </div>
                     </div>
                 </section>
 
-                <!-- ========== PROJECTS SECTION ========== -->
+                <!-- PROJECTS SECTION -->
                 <section class="content-section" id="projectsSection">
                     
-                    <!-- Search and Filter Bar -->
                     <div class="controls-bar">
-                        <!-- Search Input -->
                         <div class="search-box">
                             <i data-lucide="search" class="search-icon"></i>
                             <input 
@@ -212,9 +295,7 @@
                             </button>
                         </div>
                         
-                        <!-- Filter Dropdowns -->
                         <div class="filter-group">
-                            <!-- Status Filter -->
                             <div class="filter-select-wrapper">
                                 <select class="filter-select" id="statusFilter">
                                     <option value="all">All Status</option>
@@ -225,28 +306,21 @@
                                 <i data-lucide="chevron-down" class="select-arrow"></i>
                             </div>
                             
-                            <!-- Tech Stack Filter -->
                             <div class="filter-select-wrapper">
                                 <select class="filter-select" id="techFilter">
                                     <option value="all">All Tech</option>
-                                    <!-- Options populated by JavaScript -->
                                 </select>
                                 <i data-lucide="chevron-down" class="select-arrow"></i>
                             </div>
                         </div>
                         
-                        <!-- Add Project Button -->
                         <button class="btn btn-primary" id="projectsAddBtn">
                             <i data-lucide="plus"></i>
                             <span>Add Project</span>
                         </button>
                     </div>
                     
-                    <!-- Projects Grid -->
                     <div class="projects-grid" id="projectsGrid">
-                        <!-- Project cards will be inserted here by JavaScript -->
-                        
-                        <!-- Empty State -->
                         <div class="empty-state" id="projectsEmptyState">
                             <i data-lucide="folder-plus"></i>
                             <h3>No projects found</h3>
@@ -259,10 +333,30 @@
                     </div>
                 </section>
 
-                <!-- ========== SETTINGS SECTION ========== -->
+                <!-- SETTINGS SECTION -->
                 <section class="content-section" id="settingsSection">
                     
-                    <!-- Theme Settings -->
+                    <!-- Account Settings -->
+                    <div class="settings-card">
+                        <div class="settings-card-header">
+                            <i data-lucide="user-circle"></i>
+                            <h3>Account</h3>
+                        </div>
+                        <div class="settings-card-body">
+                            <div class="setting-row">
+                                <div class="setting-info">
+                                    <span class="setting-label">Signed in as</span>
+                                    <span class="setting-description" id="settingsUserEmail">user@email.com</span>
+                                </div>
+                                <button class="btn btn-danger" id="logoutBtn">
+                                    <i data-lucide="log-out"></i>
+                                    Sign Out
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Appearance -->
                     <div class="settings-card">
                         <div class="settings-card-header">
                             <i data-lucide="palette"></i>
@@ -288,84 +382,6 @@
                         </div>
                     </div>
                     
-                    <!-- GitHub Cloud Sync -->
-<div class="settings-card sync-card">
-    <div class="settings-card-header">
-        <i data-lucide="cloud"></i>
-        <h3>Cloud Sync (GitHub Gist)</h3>
-    </div>
-    <div class="settings-card-body">
-        <p class="settings-description">Sync your projects across all devices using GitHub Gist. Your data is stored privately in your GitHub account.</p>
-        
-        <!-- Sync Status -->
-        <div class="sync-status">
-            <div class="sync-status-icon disconnected" id="syncStatusIcon">
-                <i data-lucide="cloud-off"></i>
-            </div>
-            <div class="sync-status-info">
-                <div class="sync-status-title" id="syncStatusTitle">Not Connected</div>
-                <div class="sync-status-text" id="syncStatusText">Set up your GitHub token to enable cloud sync</div>
-            </div>
-        </div>
-        
-        <!-- Token Setup Section (shown when not connected) -->
-        <div id="tokenSection">
-            <div class="token-input-group">
-                <label for="githubTokenInput">GitHub Personal Access Token</label>
-                <div class="token-input-wrapper">
-                    <input 
-                        type="password" 
-                        id="githubTokenInput" 
-                        class="token-input" 
-                        placeholder="ghp_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
-                        autocomplete="off"
-                    >
-                    <button type="button" class="token-toggle-btn" id="toggleTokenBtn" aria-label="Toggle visibility">
-                        <i data-lucide="eye"></i>
-                    </button>
-                </div>
-                <div class="token-hint">
-                    <i data-lucide="info"></i>
-                    <span>
-                        Don't have a token? 
-                        <a href="https://github.com/settings/tokens/new?description=Project%20Vault&scopes=gist" target="_blank" rel="noopener">
-                            Create one here
-                        </a> 
-                        (select only "gist" permission)
-                    </span>
-                </div>
-            </div>
-            <button class="btn btn-primary" id="saveTokenBtn">
-                <i data-lucide="save"></i>
-                Save Token
-            </button>
-        </div>
-        
-        <!-- Sync Actions Section (shown when connected) -->
-        <div id="syncActionsSection" style="display: none;">
-            <div class="sync-actions">
-                <button class="btn btn-primary" id="uploadBtn">
-                    <i data-lucide="upload-cloud"></i>
-                    Upload to Cloud
-                </button>
-                <button class="btn btn-secondary" id="downloadBtn">
-                    <i data-lucide="download-cloud"></i>
-                    Download from Cloud
-                </button>
-            </div>
-            
-            <div class="sync-info">
-                <span class="sync-info-label">Last synced</span>
-                <span class="sync-info-value" id="lastSyncInfo">Never</span>
-            </div>
-            
-            <button class="btn btn-outline" id="disconnectBtn">
-                <i data-lucide="unlink"></i>
-                Disconnect GitHub
-            </button>
-        </div>
-    </div>
-</div>
                     <!-- Data Export -->
                     <div class="settings-card">
                         <div class="settings-card-header">
@@ -373,50 +389,13 @@
                             <h3>Export Data</h3>
                         </div>
                         <div class="settings-card-body">
-                            <p class="settings-description">Download all your project data as a JSON file. Use this for backup or to transfer to another device.</p>
+                            <p class="settings-description">Download all your project data as a JSON file for backup.</p>
                             <div class="settings-actions">
                                 <button class="btn btn-secondary" id="exportBtn">
                                     <i data-lucide="download"></i>
                                     Export to JSON
                                 </button>
-                                <button class="btn btn-outline" id="copyJsonBtn">
-                                    <i data-lucide="copy"></i>
-                                    Copy to Clipboard
-                                </button>
                             </div>
-                            <!-- Export Preview -->
-                            <div class="export-preview" id="exportPreview">
-                                <label for="exportTextarea">JSON Preview:</label>
-                                <textarea id="exportTextarea" readonly></textarea>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <!-- Data Import -->
-                    <div class="settings-card">
-                        <div class="settings-card-header">
-                            <i data-lucide="upload"></i>
-                            <h3>Import Data</h3>
-                        </div>
-                        <div class="settings-card-body">
-                            <p class="settings-description">Restore your projects from a JSON backup. Warning: This will replace all current data!</p>
-                            <div class="import-area">
-                                <div class="file-drop-zone" id="fileDropZone">
-                                    <i data-lucide="upload-cloud"></i>
-                                    <p>Drag & drop JSON file here, or click to browse</p>
-                                    <input type="file" id="importFileInput" accept=".json" hidden>
-                                </div>
-                                <span class="import-divider">OR</span>
-                                <textarea 
-                                    class="import-textarea" 
-                                    id="importTextarea" 
-                                    placeholder="Paste your JSON data here..."
-                                ></textarea>
-                            </div>
-                            <button class="btn btn-warning" id="importBtn">
-                                <i data-lucide="upload"></i>
-                                Import Data
-                            </button>
                         </div>
                     </div>
                     
@@ -441,16 +420,14 @@
                     </div>
                 </section>
 
-            </div><!-- End content-container -->
-        </main><!-- End main-content -->
-    </div><!-- End app-container -->
+            </div>
+        </main>
+    </div>
 
-    <!-- ==================== MODALS ==================== -->
+    <!-- MODALS (same as before) -->
     
-    <!-- Add/Edit Project Modal -->
     <div class="modal-overlay" id="projectModal">
         <div class="modal" role="dialog" aria-labelledby="modalTitle">
-            <!-- Modal Header -->
             <div class="modal-header">
                 <h2 class="modal-title" id="modalTitle">Add New Project</h2>
                 <button class="modal-close-btn" id="modalCloseBtn" aria-label="Close modal">
@@ -458,13 +435,10 @@
                 </button>
             </div>
             
-            <!-- Modal Body - Scrollable Form -->
             <div class="modal-body">
                 <form id="projectForm" novalidate>
-                    <!-- Hidden field for project ID (used when editing) -->
                     <input type="hidden" id="projectId">
                     
-                    <!-- BASIC INFO GROUP -->
                     <div class="form-group-title">
                         <i data-lucide="info"></i>
                         Basic Information
@@ -519,7 +493,6 @@
                         </div>
                     </div>
                     
-                    <!-- TECH STACK -->
                     <div class="form-group-title">
                         <i data-lucide="code-2"></i>
                         Tech Stack
@@ -534,11 +507,9 @@
                             placeholder="HTML, CSS, JavaScript, React..."
                         >
                         <span class="form-hint">Enter technologies separated by commas</span>
-                        <!-- Tags preview -->
                         <div class="tags-preview" id="tagsPreview"></div>
                     </div>
                     
-                    <!-- LINKS GROUP -->
                     <div class="form-group-title">
                         <i data-lucide="link"></i>
                         Links
@@ -572,7 +543,6 @@
                         </div>
                     </div>
                     
-                    <!-- ACCOUNTS GROUP -->
                     <div class="form-group-title">
                         <i data-lucide="user-circle"></i>
                         Accounts Used
@@ -591,11 +561,9 @@
                         >
                     </div>
                     
-                    <!-- Dynamic Other Accounts Section -->
                     <div class="form-group">
                         <label>Other Accounts</label>
                         <div class="dynamic-list" id="accountsList">
-                            <!-- Account rows will be added here dynamically -->
                         </div>
                         <button type="button" class="btn btn-add" id="addAccountBtn">
                             <i data-lucide="plus-circle"></i>
@@ -603,7 +571,6 @@
                         </button>
                     </div>
                     
-                    <!-- API / SERVICES GROUP -->
                     <div class="form-group-title">
                         <i data-lucide="key"></i>
                         APIs & Services (References Only!)
@@ -614,11 +581,9 @@
                         <span>Only store WHERE keys are located, NOT the actual keys!</span>
                     </div>
                     
-                    <!-- Dynamic APIs Section -->
                     <div class="form-group">
                         <label>API / Service References</label>
                         <div class="dynamic-list" id="apisList">
-                            <!-- API rows will be added here dynamically -->
                         </div>
                         <button type="button" class="btn btn-add" id="addApiBtn">
                             <i data-lucide="plus-circle"></i>
@@ -626,7 +591,6 @@
                         </button>
                     </div>
                     
-                    <!-- CREDENTIALS & NOTES GROUP -->
                     <div class="form-group-title">
                         <i data-lucide="file-text"></i>
                         Credentials & Notes
@@ -655,7 +619,6 @@
                 </form>
             </div>
             
-            <!-- Modal Footer -->
             <div class="modal-footer">
                 <button type="button" class="btn btn-outline" id="modalCancelBtn">Cancel</button>
                 <button type="button" class="btn btn-danger" id="modalDeleteBtn" style="display: none;">
@@ -670,10 +633,8 @@
         </div>
     </div>
 
-    <!-- View Project Modal (Detail View) -->
     <div class="modal-overlay" id="viewModal">
         <div class="modal modal-view" role="dialog" aria-labelledby="viewModalTitle">
-            <!-- Modal Header -->
             <div class="modal-header">
                 <h2 class="modal-title" id="viewModalTitle">Project Details</h2>
                 <button class="modal-close-btn" id="viewModalCloseBtn" aria-label="Close modal">
@@ -681,12 +642,9 @@
                 </button>
             </div>
             
-            <!-- Modal Body - Project Details -->
             <div class="modal-body" id="viewModalBody">
-                <!-- Content will be populated by JavaScript -->
             </div>
             
-            <!-- Modal Footer -->
             <div class="modal-footer">
                 <button type="button" class="btn btn-outline" id="viewModalClose2Btn">Close</button>
                 <button type="button" class="btn btn-secondary" id="viewEditBtn">
@@ -701,7 +659,6 @@
         </div>
     </div>
 
-    <!-- Confirm Delete Modal -->
     <div class="modal-overlay" id="confirmModal">
         <div class="modal modal-confirm" role="alertdialog" aria-labelledby="confirmTitle">
             <div class="confirm-icon">
@@ -721,12 +678,33 @@
         </div>
     </div>
 
-    <!-- Toast Notification Container -->
     <div class="toast-container" id="toastContainer">
-        <!-- Toast notifications will appear here -->
     </div>
 
-    <!-- Link to our JavaScript file (at the end for faster page load) -->
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+    
+    <!-- Firebase Configuration -->
+    <script>
+        // REPLACE WITH YOUR FIREBASE CONFIG
+        const firebaseConfig = {
+  apiKey: "AIzaSyDJ4huqcgSO0iuEUkGxW11BpjCa2Lle7Ik",
+  authDomain: "project-vault-746be.firebaseapp.com",
+  projectId: "project-vault-746be",
+  storageBucket: "project-vault-746be.firebasestorage.app",
+  messagingSenderId: "209864805757",
+  appId: "1:209864805757:web:a452085df9b791f1df9014"
+};
+
+        
+        // Initialize Firebase
+        firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+        const db = firebase.firestore();
+    </script>
+    
     <script src="script.js"></script>
 </body>
 </html>

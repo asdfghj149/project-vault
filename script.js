@@ -1,398 +1,109 @@
 /* ============================================================
-   PROJECT VAULT - JAVASCRIPT (WITH GITHUB GIST SYNC)
-   Handles all functionality: data, UI, interactions, and cloud sync
+   PROJECT VAULT - WITH FIREBASE AUTHENTICATION
+   Complete rewrite with cloud sync and login system
    ============================================================ */
 
 // ============================================================
-// SECTION 1: DATA MANAGEMENT
-// Functions to handle localStorage and project data
+// FIREBASE & AUTH STATE
+// ============================================================
+
+let currentUser = null;
+let unsubscribeProjects = null; // Firestore listener
+
+// ============================================================
+// STORAGE KEYS (for theme only - data is now in Firestore)
 // ============================================================
 
 const STORAGE_KEYS = {
-    PROJECTS: 'projectVault_projects',
-    THEME: 'projectVault_theme',
-    GITHUB_TOKEN: 'projectVault_githubToken',
-    GIST_ID: 'projectVault_gistId',
-    LAST_SYNC: 'projectVault_lastSync'
+    THEME: 'projectVault_theme'
 };
+
+// ============================================================
+// UTILITY FUNCTIONS
+// ============================================================
 
 function generateId() {
     return Date.now().toString(36) + Math.random().toString(36).substring(2);
 }
 
-function getProjects() {
-    try {
-        const data = localStorage.getItem(STORAGE_KEYS.PROJECTS);
-        return data ? JSON.parse(data) : [];
-    } catch (error) {
-        console.error('Error loading projects:', error);
-        return [];
-    }
+function escapeHtml(text) {
+    if (!text) return '';
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
 }
 
-function saveProjects(projects) {
-    try {
-        localStorage.setItem(STORAGE_KEYS.PROJECTS, JSON.stringify(projects));
-    } catch (error) {
-        console.error('Error saving projects:', error);
-        showToast('Error saving data. Storage might be full.', 'error');
-    }
+function formatDate(dateString) {
+    if (!dateString) return 'Unknown';
+    const date = new Date(dateString);
+    return date.toLocaleDateString('en-US', {
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric'
+    });
 }
 
-function getProjectById(id) {
-    const projects = getProjects();
-    return projects.find(project => project.id === id) || null;
+function formatDateTime(dateString) {
+    if (!dateString) return 'Unknown';
+    const date = new Date(dateString);
+    return date.toLocaleDateString('en-US', {
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+    });
 }
 
-function createProject(projectData) {
-    const projects = getProjects();
-    const now = new Date().toISOString();
-    
-    const newProject = {
-        id: generateId(),
-        ...projectData,
-        createdAt: now,
-        updatedAt: now
-    };
-    
-    projects.unshift(newProject);
-    saveProjects(projects);
-    
-    return newProject;
+function formatDateForFilename(date) {
+    return date.toISOString().split('T')[0];
 }
 
-function updateProject(id, projectData) {
-    const projects = getProjects();
-    const index = projects.findIndex(project => project.id === id);
-    
-    if (index === -1) return null;
-    
-    const updatedProject = {
-        ...projects[index],
-        ...projectData,
-        updatedAt: new Date().toISOString()
-    };
-    
-    projects[index] = updatedProject;
-    saveProjects(projects);
-    
-    return updatedProject;
-}
-
-function deleteProject(id) {
-    const projects = getProjects();
-    const filteredProjects = projects.filter(project => project.id !== id);
-    
-    if (filteredProjects.length === projects.length) {
-        return false;
-    }
-    
-    saveProjects(filteredProjects);
-    return true;
-}
-
-function deleteAllProjects() {
-    saveProjects([]);
-}
-
-function getRecentProjects(limit = null) {
-    const projects = getProjects();
-    const sorted = projects.sort((a, b) => 
-        new Date(b.updatedAt) - new Date(a.updatedAt)
-    );
-    
-    return limit ? sorted.slice(0, limit) : sorted;
-}
-
-function getProjectStats() {
-    const projects = getProjects();
-    
-    return {
-        total: projects.length,
-        idea: projects.filter(p => p.status === 'idea').length,
-        inProgress: projects.filter(p => p.status === 'in-progress').length,
-        completed: projects.filter(p => p.status === 'completed').length
+function debounce(func, wait) {
+    let timeout;
+    return function executedFunction(...args) {
+        const later = () => {
+            clearTimeout(timeout);
+            func(...args);
+        };
+        clearTimeout(timeout);
+        timeout = setTimeout(later, wait);
     };
 }
-
-function getAllTechTags() {
-    const projects = getProjects();
-    const allTags = projects.flatMap(p => p.techStack || []);
-    return [...new Set(allTags)].sort();
-}
-
 
 // ============================================================
-// SECTION 1B: GITHUB GIST SYNC
-// Functions to sync data with GitHub Gist
-// ============================================================
-
-/**
- * Get stored GitHub token
- * @returns {string|null} Token or null
- */
-function getGithubToken() {
-    return localStorage.getItem(STORAGE_KEYS.GITHUB_TOKEN);
-}
-
-/**
- * Save GitHub token
- * @param {string} token - GitHub personal access token
- */
-function saveGithubToken(token) {
-    localStorage.setItem(STORAGE_KEYS.GITHUB_TOKEN, token);
-}
-
-/**
- * Remove GitHub token
- */
-function removeGithubToken() {
-    localStorage.removeItem(STORAGE_KEYS.GITHUB_TOKEN);
-    localStorage.removeItem(STORAGE_KEYS.GIST_ID);
-    localStorage.removeItem(STORAGE_KEYS.LAST_SYNC);
-}
-
-/**
- * Get stored Gist ID
- * @returns {string|null} Gist ID or null
- */
-function getGistId() {
-    return localStorage.getItem(STORAGE_KEYS.GIST_ID);
-}
-
-/**
- * Save Gist ID
- * @param {string} gistId - GitHub Gist ID
- */
-function saveGistId(gistId) {
-    localStorage.setItem(STORAGE_KEYS.GIST_ID, gistId);
-}
-
-/**
- * Update last sync timestamp
- */
-function updateLastSync() {
-    localStorage.setItem(STORAGE_KEYS.LAST_SYNC, new Date().toISOString());
-}
-
-/**
- * Get last sync time
- * @returns {string|null} ISO timestamp or null
- */
-function getLastSync() {
-    return localStorage.getItem(STORAGE_KEYS.LAST_SYNC);
-}
-
-/**
- * Check if GitHub sync is configured
- * @returns {boolean} True if token exists
- */
-function isSyncConfigured() {
-    return !!getGithubToken();
-}
-
-/**
- * Upload projects to GitHub Gist
- * @returns {Promise<boolean>} Success status
- */
-async function uploadToGist() {
-    const token = getGithubToken();
-    
-    if (!token) {
-        showToast('Please set up your GitHub token first', 'warning');
-        return false;
-    }
-    
-    const projects = getProjects();
-    const data = {
-        syncedAt: new Date().toISOString(),
-        version: '1.0',
-        projects: projects
-    };
-    
-    const content = JSON.stringify(data, null, 2);
-    const gistId = getGistId();
-    
-    try {
-        let response;
-        
-        if (gistId) {
-            // Update existing gist
-            response = await fetch(`https://api.github.com/gists/${gistId}`, {
-                method: 'PATCH',
-                headers: {
-                    'Authorization': `token ${token}`,
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                    files: {
-                        'project-vault-data.json': {
-                            content: content
-                        }
-                    }
-                })
-            });
-        } else {
-            // Create new gist
-            response = await fetch('https://api.github.com/gists', {
-                method: 'POST',
-                headers: {
-                    'Authorization': `token ${token}`,
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                    description: 'Project Vault - Personal Project Data',
-                    public: false,
-                    files: {
-                        'project-vault-data.json': {
-                            content: content
-                        }
-                    }
-                })
-            });
-        }
-        
-        if (!response.ok) {
-            const error = await response.json();
-            throw new Error(error.message || 'Failed to sync');
-        }
-        
-        const result = await response.json();
-        
-        // Save gist ID if it's a new gist
-        if (!gistId) {
-            saveGistId(result.id);
-        }
-        
-        updateLastSync();
-        updateSyncStatus();
-        showToast('Synced to cloud successfully!', 'success');
-        return true;
-        
-    } catch (error) {
-        console.error('Upload error:', error);
-        showToast(`Sync failed: ${error.message}`, 'error');
-        return false;
-    }
-}
-
-/**
- * Download projects from GitHub Gist
- * @returns {Promise<boolean>} Success status
- */
-async function downloadFromGist() {
-    const token = getGithubToken();
-    const gistId = getGistId();
-    
-    if (!token) {
-        showToast('Please set up your GitHub token first', 'warning');
-        return false;
-    }
-    
-    if (!gistId) {
-        showToast('No cloud data found. Upload first to create it.', 'info');
-        return false;
-    }
-    
-    try {
-        const response = await fetch(`https://api.github.com/gists/${gistId}`, {
-            headers: {
-                'Authorization': `token ${token}`
-            }
-        });
-        
-        if (!response.ok) {
-            throw new Error('Failed to fetch data from cloud');
-        }
-        
-        const gist = await response.json();
-        const fileContent = gist.files['project-vault-data.json'].content;
-        const data = JSON.parse(fileContent);
-        
-        if (!data.projects || !Array.isArray(data.projects)) {
-            throw new Error('Invalid data format');
-        }
-        
-        // Ask for confirmation before overwriting
-        showConfirmDialog(
-            'Download from Cloud?',
-            `This will replace your current data with ${data.projects.length} project(s) from the cloud. Continue?`,
-            () => {
-                saveProjects(data.projects);
-                updateLastSync();
-                updateSyncStatus();
-                renderDashboard();
-                renderProjectsList();
-                populateTechFilter();
-                showToast(`Downloaded ${data.projects.length} project(s) from cloud!`, 'success');
-            }
-        );
-        
-        return true;
-        
-    } catch (error) {
-        console.error('Download error:', error);
-        showToast(`Download failed: ${error.message}`, 'error');
-        return false;
-    }
-}
-
-/**
- * Update sync status display in settings
- */
-function updateSyncStatus() {
-    const statusIcon = document.getElementById('syncStatusIcon');
-    const statusTitle = document.getElementById('syncStatusTitle');
-    const statusText = document.getElementById('syncStatusText');
-    const lastSyncInfo = document.getElementById('lastSyncInfo');
-    const tokenSection = document.getElementById('tokenSection');
-    const syncActionsSection = document.getElementById('syncActionsSection');
-    
-    if (!statusIcon) return; // Not on settings page
-    
-    const isConfigured = isSyncConfigured();
-    
-    if (isConfigured) {
-        statusIcon.className = 'sync-status-icon connected';
-        statusIcon.innerHTML = '<i data-lucide="cloud-check"></i>';
-        statusTitle.textContent = 'Connected';
-        statusText.textContent = 'Your GitHub token is set up and ready';
-        tokenSection.style.display = 'none';
-        syncActionsSection.style.display = 'block';
-        
-        const lastSync = getLastSync();
-        if (lastSync) {
-            lastSyncInfo.textContent = formatRelativeTime(lastSync);
-        } else {
-            lastSyncInfo.textContent = 'Never';
-        }
-    } else {
-        statusIcon.className = 'sync-status-icon disconnected';
-        statusIcon.innerHTML = '<i data-lucide="cloud-off"></i>';
-        statusTitle.textContent = 'Not Connected';
-        statusText.textContent = 'Set up your GitHub token to enable cloud sync';
-        tokenSection.style.display = 'block';
-        syncActionsSection.style.display = 'none';
-        lastSyncInfo.textContent = 'Not synced';
-    }
-    
-    lucide.createIcons();
-}
-
-
-// ============================================================
-// SECTION 2: DOM ELEMENT REFERENCES
-// Cache DOM elements for better performance
+// DOM REFERENCES
 // ============================================================
 
 const DOM = {
-    // Sidebar elements
+    // Login elements
+    loginContainer: document.getElementById('loginContainer'),
+    signupForm: document.getElementById('signupForm'),
+    signinForm: document.getElementById('signinForm'),
+    googleSignInBtn: document.getElementById('googleSignInBtn'),
+    toggleFormBtn: document.getElementById('toggleFormBtn'),
+    toggleText: document.getElementById('toggleText'),
+    loginLoading: document.getElementById('loginLoading'),
+    loginError: document.getElementById('loginError'),
+    loginErrorText: document.getElementById('loginErrorText'),
+    
+    // App container
+    appContainer: document.getElementById('appContainer'),
+    
+    // Sidebar
     sidebar: document.getElementById('sidebar'),
     sidebarOverlay: document.getElementById('sidebarOverlay'),
     sidebarCloseBtn: document.getElementById('sidebarCloseBtn'),
     mobileMenuBtn: document.getElementById('mobileMenuBtn'),
     navLinks: document.querySelectorAll('.nav-link'),
     themeToggle: document.getElementById('themeToggle'),
+    
+    // User profile
+    userAvatar: document.getElementById('userAvatar'),
+    userName: document.getElementById('userName'),
+    userEmail: document.getElementById('userEmail'),
+    settingsUserEmail: document.getElementById('settingsUserEmail'),
+    logoutBtn: document.getElementById('logoutBtn'),
     
     // Header
     pageTitle: document.getElementById('pageTitle'),
@@ -412,7 +123,7 @@ const DOM = {
     dashboardEmptyState: document.getElementById('dashboardEmptyState'),
     dashboardAddBtn: document.getElementById('dashboardAddBtn'),
     
-    // Projects section
+    // Projects
     searchInput: document.getElementById('searchInput'),
     searchClear: document.getElementById('searchClear'),
     statusFilter: document.getElementById('statusFilter'),
@@ -425,24 +136,9 @@ const DOM = {
     // Settings
     themeOptions: document.querySelectorAll('.theme-option'),
     exportBtn: document.getElementById('exportBtn'),
-    copyJsonBtn: document.getElementById('copyJsonBtn'),
-    exportPreview: document.getElementById('exportPreview'),
-    exportTextarea: document.getElementById('exportTextarea'),
-    fileDropZone: document.getElementById('fileDropZone'),
-    importFileInput: document.getElementById('importFileInput'),
-    importTextarea: document.getElementById('importTextarea'),
-    importBtn: document.getElementById('importBtn'),
     deleteAllBtn: document.getElementById('deleteAllBtn'),
     
-    // GitHub Sync (new)
-    githubTokenInput: document.getElementById('githubTokenInput'),
-    saveTokenBtn: document.getElementById('saveTokenBtn'),
-    toggleTokenBtn: document.getElementById('toggleTokenBtn'),
-    disconnectBtn: document.getElementById('disconnectBtn'),
-    uploadBtn: document.getElementById('uploadBtn'),
-    downloadBtn: document.getElementById('downloadBtn'),
-    
-    // Project Modal (Add/Edit)
+    // Modals
     projectModal: document.getElementById('projectModal'),
     modalTitle: document.getElementById('modalTitle'),
     modalCloseBtn: document.getElementById('modalCloseBtn'),
@@ -465,7 +161,6 @@ const DOM = {
     modalDeleteBtn: document.getElementById('modalDeleteBtn'),
     modalSaveBtn: document.getElementById('modalSaveBtn'),
     
-    // View Modal
     viewModal: document.getElementById('viewModal'),
     viewModalTitle: document.getElementById('viewModalTitle'),
     viewModalCloseBtn: document.getElementById('viewModalCloseBtn'),
@@ -474,50 +169,419 @@ const DOM = {
     viewEditBtn: document.getElementById('viewEditBtn'),
     viewDeleteBtn: document.getElementById('viewDeleteBtn'),
     
-    // Confirm Modal
     confirmModal: document.getElementById('confirmModal'),
     confirmTitle: document.getElementById('confirmTitle'),
     confirmMessage: document.getElementById('confirmMessage'),
     confirmCancelBtn: document.getElementById('confirmCancelBtn'),
     confirmDeleteBtn: document.getElementById('confirmDeleteBtn'),
     
-    // Toast container
     toastContainer: document.getElementById('toastContainer')
 };
 
-
 // ============================================================
-// SECTION 3: STATE MANAGEMENT
-// Variables to track current app state
+// STATE
 // ============================================================
 
 let currentSection = 'dashboard';
 let currentProjectId = null;
 let confirmCallback = null;
-
+let cachedProjects = []; // Local cache of projects
 
 // ============================================================
-// SECTION 4: INITIALIZATION
-// Setup the app when page loads
+// AUTHENTICATION FUNCTIONS
+// ============================================================
+
+/**
+ * Show login screen, hide app
+ */
+function showLoginScreen() {
+    DOM.loginContainer.style.display = 'flex';
+    DOM.appContainer.style.display = 'none';
+    DOM.loginLoading.style.display = 'none';
+    DOM.loginError.style.display = 'none';
+}
+
+/**
+ * Show app, hide login screen
+ */
+function showApp() {
+    DOM.loginContainer.style.display = 'none';
+    DOM.appContainer.style.display = 'flex';
+}
+
+/**
+ * Show error on login screen
+ */
+function showLoginError(message) {
+    DOM.loginErrorText.textContent = message;
+    DOM.loginError.style.display = 'flex';
+    DOM.loginLoading.style.display = 'none';
+}
+
+/**
+ * Hide error on login screen
+ */
+function hideLoginError() {
+    DOM.loginError.style.display = 'none';
+}
+
+/**
+ * Sign up with email and password
+ */
+async function signUpWithEmail(email, password) {
+    try {
+        DOM.loginLoading.style.display = 'flex';
+        hideLoginError();
+        
+        const userCredential = await auth.createUserWithEmailAndPassword(email, password);
+        console.log('User signed up:', userCredential.user.uid);
+        
+        // User will be automatically signed in
+        
+    } catch (error) {
+        console.error('Sign up error:', error);
+        
+        let message = 'Failed to create account. Please try again.';
+        
+        if (error.code === 'auth/email-already-in-use') {
+            message = 'This email is already in use. Try signing in instead.';
+        } else if (error.code === 'auth/invalid-email') {
+            message = 'Invalid email address.';
+        } else if (error.code === 'auth/weak-password') {
+            message = 'Password should be at least 6 characters.';
+        }
+        
+        showLoginError(message);
+    }
+}
+
+/**
+ * Sign in with email and password
+ */
+async function signInWithEmail(email, password) {
+    try {
+        DOM.loginLoading.style.display = 'flex';
+        hideLoginError();
+        
+        const userCredential = await auth.signInWithEmailAndPassword(email, password);
+        console.log('User signed in:', userCredential.user.uid);
+        
+    } catch (error) {
+        console.error('Sign in error:', error);
+        
+        let message = 'Failed to sign in. Please check your credentials.';
+        
+        if (error.code === 'auth/user-not-found') {
+            message = 'No account found with this email. Try signing up.';
+        } else if (error.code === 'auth/wrong-password') {
+            message = 'Incorrect password.';
+        } else if (error.code === 'auth/invalid-email') {
+            message = 'Invalid email address.';
+        }
+        
+        showLoginError(message);
+    }
+}
+
+/**
+ * Sign in with Google
+ */
+async function signInWithGoogle() {
+    try {
+        DOM.loginLoading.style.display = 'flex';
+        hideLoginError();
+        
+        const provider = new firebase.auth.GoogleAuthProvider();
+        const result = await auth.signInWithPopup(provider);
+        
+        console.log('Google sign in successful:', result.user.uid);
+        
+    } catch (error) {
+        console.error('Google sign in error:', error);
+        
+        let message = 'Failed to sign in with Google.';
+        
+        if (error.code === 'auth/popup-closed-by-user') {
+            message = 'Sign in cancelled.';
+        } else if (error.code === 'auth/popup-blocked') {
+            message = 'Popup blocked. Please allow popups for this site.';
+        }
+        
+        showLoginError(message);
+    }
+}
+
+/**
+ * Sign out
+ */
+async function signOut() {
+    try {
+        await auth.signOut();
+        showToast('Signed out successfully', 'success');
+    } catch (error) {
+        console.error('Sign out error:', error);
+        showToast('Failed to sign out', 'error');
+    }
+}
+
+/**
+ * Update user profile display
+ */
+function updateUserProfile(user) {
+    if (!user) return;
+    
+    const displayName = user.displayName || user.email.split('@')[0];
+    const email = user.email;
+    const photoURL = user.photoURL;
+    
+    // Update sidebar
+    DOM.userName.textContent = displayName;
+    DOM.userEmail.textContent = email;
+    
+    // Update avatar
+    if (photoURL) {
+        DOM.userAvatar.innerHTML = `<img src="${photoURL}" alt="Profile">`;
+    } else {
+        DOM.userAvatar.innerHTML = `<i data-lucide="user"></i>`;
+        lucide.createIcons();
+    }
+    
+    // Update settings
+    DOM.settingsUserEmail.textContent = email;
+}
+
+// ============================================================
+// FIRESTORE DATA FUNCTIONS
+// ============================================================
+
+/**
+ * Get reference to user's projects collection
+ */
+function getUserProjectsRef() {
+    if (!currentUser) return null;
+    return db.collection('users').doc(currentUser.uid).collection('projects');
+}
+
+/**
+ * Listen to projects in real-time
+ */
+function listenToProjects() {
+    const projectsRef = getUserProjectsRef();
+    if (!projectsRef) return;
+    
+    // Unsubscribe from previous listener if exists
+    if (unsubscribeProjects) {
+        unsubscribeProjects();
+    }
+    
+    // Set up real-time listener
+    unsubscribeProjects = projectsRef.onSnapshot(
+        (snapshot) => {
+            cachedProjects = [];
+            
+            snapshot.forEach((doc) => {
+                cachedProjects.push({
+                    id: doc.id,
+                    ...doc.data()
+                });
+            });
+            
+            console.log('Projects updated:', cachedProjects.length);
+            
+            // Refresh UI
+            renderDashboard();
+            renderProjectsList();
+            populateTechFilter();
+        },
+        (error) => {
+            console.error('Error listening to projects:', error);
+            showToast('Failed to sync projects', 'error');
+        }
+    );
+}
+
+/**
+ * Get all projects (from cache)
+ */
+function getProjects() {
+    return cachedProjects;
+}
+
+/**
+ * Get project by ID
+ */
+function getProjectById(id) {
+    return cachedProjects.find(p => p.id === id) || null;
+}
+
+/**
+ * Create a new project
+ */
+async function createProject(projectData) {
+    const projectsRef = getUserProjectsRef();
+    if (!projectsRef) {
+        showToast('Not authenticated', 'error');
+        return null;
+    }
+    
+    const now = new Date().toISOString();
+    const newProject = {
+        ...projectData,
+        createdAt: now,
+        updatedAt: now
+    };
+    
+    try {
+        const docRef = await projectsRef.add(newProject);
+        console.log('Project created:', docRef.id);
+        return { id: docRef.id, ...newProject };
+    } catch (error) {
+        console.error('Error creating project:', error);
+        showToast('Failed to create project', 'error');
+        return null;
+    }
+}
+
+/**
+ * Update a project
+ */
+async function updateProject(id, projectData) {
+    const projectsRef = getUserProjectsRef();
+    if (!projectsRef) {
+        showToast('Not authenticated', 'error');
+        return null;
+    }
+    
+    const updatedData = {
+        ...projectData,
+        updatedAt: new Date().toISOString()
+    };
+    
+    try {
+        await projectsRef.doc(id).update(updatedData);
+        console.log('Project updated:', id);
+        return { id, ...updatedData };
+    } catch (error) {
+        console.error('Error updating project:', error);
+        showToast('Failed to update project', 'error');
+        return null;
+    }
+}
+
+/**
+ * Delete a project
+ */
+async function deleteProject(id) {
+    const projectsRef = getUserProjectsRef();
+    if (!projectsRef) {
+        showToast('Not authenticated', 'error');
+        return false;
+    }
+    
+    try {
+        await projectsRef.doc(id).delete();
+        console.log('Project deleted:', id);
+        return true;
+    } catch (error) {
+        console.error('Error deleting project:', error);
+        showToast('Failed to delete project', 'error');
+        return false;
+    }
+}
+
+/**
+ * Delete all projects
+ */
+async function deleteAllProjects() {
+    const projectsRef = getUserProjectsRef();
+    if (!projectsRef) return;
+    
+    try {
+        const batch = db.batch();
+        const snapshot = await projectsRef.get();
+        
+        snapshot.forEach((doc) => {
+            batch.delete(doc.ref);
+        });
+        
+        await batch.commit();
+        console.log('All projects deleted');
+    } catch (error) {
+        console.error('Error deleting all projects:', error);
+        showToast('Failed to delete all projects', 'error');
+    }
+}
+
+/**
+ * Get recent projects
+ */
+function getRecentProjects(limit = 5) {
+    return [...cachedProjects]
+        .sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt))
+        .slice(0, limit);
+}
+
+/**
+ * Get project statistics
+ */
+function getProjectStats() {
+    return {
+        total: cachedProjects.length,
+        idea: cachedProjects.filter(p => p.status === 'idea').length,
+        inProgress: cachedProjects.filter(p => p.status === 'in-progress').length,
+        completed: cachedProjects.filter(p => p.status === 'completed').length
+    };
+}
+
+/**
+ * Get all unique tech tags
+ */
+function getAllTechTags() {
+    const allTags = cachedProjects.flatMap(p => p.techStack || []);
+    return [...new Set(allTags)].sort();
+}
+
+// ============================================================
+// INITIALIZATION
 // ============================================================
 
 function initApp() {
     lucide.createIcons();
     loadTheme();
-    renderDashboard();
-    renderProjectsList();
-    populateTechFilter();
     setupEventListeners();
     
-    console.log('Project Vault initialized successfully!');
+    // Listen for auth state changes
+    auth.onAuthStateChanged((user) => {
+        if (user) {
+            // User is signed in
+            currentUser = user;
+            console.log('User authenticated:', user.uid);
+            
+            updateUserProfile(user);
+            showApp();
+            listenToProjects();
+            
+        } else {
+            // User is signed out
+            currentUser = null;
+            console.log('User not authenticated');
+            
+            // Unsubscribe from projects listener
+            if (unsubscribeProjects) {
+                unsubscribeProjects();
+                unsubscribeProjects = null;
+            }
+            
+            cachedProjects = [];
+            showLoginScreen();
+        }
+    });
 }
 
 document.addEventListener('DOMContentLoaded', initApp);
 
-
 // ============================================================
-// SECTION 5: THEME MANAGEMENT
-// Dark/Light mode switching
+// THEME
 // ============================================================
 
 function loadTheme() {
@@ -545,10 +609,8 @@ function toggleTheme() {
     setTheme(newTheme);
 }
 
-
 // ============================================================
-// SECTION 6: NAVIGATION
-// Switching between sections
+// NAVIGATION
 // ============================================================
 
 function navigateTo(sectionName) {
@@ -581,8 +643,6 @@ function navigateTo(sectionName) {
     } else if (sectionName === 'projects') {
         renderProjectsList();
         populateTechFilter();
-    } else if (sectionName === 'settings') {
-        updateSyncStatus();
     }
 }
 
@@ -598,10 +658,8 @@ function closeSidebar() {
     document.body.style.overflow = '';
 }
 
-
 // ============================================================
-// SECTION 7: RENDERING FUNCTIONS
-// Create HTML content for display
+// RENDERING
 // ============================================================
 
 function renderDashboard() {
@@ -769,10 +827,8 @@ function populateTechFilter() {
     });
 }
 
-
 // ============================================================
-// SECTION 8: MODAL MANAGEMENT
-// Open/close modal dialogs
+// MODALS
 // ============================================================
 
 function openAddModal() {
@@ -1048,13 +1104,11 @@ function closeConfirmDialog() {
     confirmCallback = null;
 }
 
-
 // ============================================================
-// SECTION 9: FORM HANDLING
-// Process form data and dynamic fields
+// FORM HANDLING
 // ============================================================
 
-function handleProjectFormSubmit(e) {
+async function handleProjectFormSubmit(e) {
     e.preventDefault();
     
     if (!validateProjectForm()) {
@@ -1076,17 +1130,14 @@ function handleProjectFormSubmit(e) {
     };
     
     if (currentProjectId) {
-        updateProject(currentProjectId, projectData);
+        await updateProject(currentProjectId, projectData);
         showToast('Project updated successfully!', 'success');
     } else {
-        createProject(projectData);
+        await createProject(projectData);
         showToast('Project created successfully!', 'success');
     }
     
     closeProjectModal();
-    renderDashboard();
-    renderProjectsList();
-    populateTechFilter();
 }
 
 function validateProjectForm() {
@@ -1209,10 +1260,8 @@ function gatherApis() {
     return apis;
 }
 
-
 // ============================================================
-// SECTION 10: SEARCH & FILTER
-// Search and filter functionality
+// SEARCH & FILTER
 // ============================================================
 
 function handleSearch() {
@@ -1227,10 +1276,8 @@ function clearSearch() {
     DOM.searchInput.focus();
 }
 
-
 // ============================================================
-// SECTION 11: IMPORT & EXPORT
-// Backup and restore functionality
+// EXPORT
 // ============================================================
 
 function exportToJson() {
@@ -1242,9 +1289,6 @@ function exportToJson() {
     };
     
     const json = JSON.stringify(data, null, 2);
-    
-    DOM.exportTextarea.value = json;
-    DOM.exportPreview.classList.add('visible');
     
     const blob = new Blob([json], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
@@ -1259,120 +1303,8 @@ function exportToJson() {
     showToast('Data exported successfully!', 'success');
 }
 
-function copyJsonToClipboard() {
-    const projects = getProjects();
-    const data = {
-        exportedAt: new Date().toISOString(),
-        version: '1.0',
-        projects: projects
-    };
-    
-    const json = JSON.stringify(data, null, 2);
-    
-    navigator.clipboard.writeText(json)
-        .then(() => {
-            showToast('Copied to clipboard!', 'success');
-            DOM.exportTextarea.value = json;
-            DOM.exportPreview.classList.add('visible');
-        })
-        .catch(() => {
-            showToast('Failed to copy. Try the export button.', 'error');
-        });
-}
-
-function handleFileDrop(e) {
-    e.preventDefault();
-    DOM.fileDropZone.classList.remove('dragover');
-    
-    const file = e.dataTransfer.files[0];
-    if (file) {
-        readImportFile(file);
-    }
-}
-
-function handleFileSelect(e) {
-    const file = e.target.files[0];
-    if (file) {
-        readImportFile(file);
-    }
-}
-
-function readImportFile(file) {
-    if (!file.name.endsWith('.json')) {
-        showToast('Please select a JSON file', 'error');
-        return;
-    }
-    
-    const reader = new FileReader();
-    
-    reader.onload = (e) => {
-        DOM.importTextarea.value = e.target.result;
-        showToast('File loaded! Click "Import Data" to confirm.', 'info');
-    };
-    
-    reader.onerror = () => {
-        showToast('Error reading file', 'error');
-    };
-    
-    reader.readAsText(file);
-}
-
-function importData() {
-    const jsonText = DOM.importTextarea.value.trim();
-    
-    if (!jsonText) {
-        showToast('Please paste JSON data or select a file first', 'warning');
-        return;
-    }
-    
-    try {
-        const data = JSON.parse(jsonText);
-        
-        if (!data.projects || !Array.isArray(data.projects)) {
-            throw new Error('Invalid data format');
-        }
-        
-        showConfirmDialog(
-            'Import Data?',
-            `This will replace all current data with ${data.projects.length} project(s). This cannot be undone!`,
-            () => {
-                const validProjects = data.projects.map(project => ({
-                    id: project.id || generateId(),
-                    name: project.name || 'Untitled Project',
-                    description: project.description || '',
-                    status: ['idea', 'in-progress', 'completed'].includes(project.status) 
-                        ? project.status : 'idea',
-                    techStack: Array.isArray(project.techStack) ? project.techStack : [],
-                    githubUrl: project.githubUrl || '',
-                    liveUrl: project.liveUrl || '',
-                    googleAccount: project.googleAccount || '',
-                    otherAccounts: Array.isArray(project.otherAccounts) ? project.otherAccounts : [],
-                    apis: Array.isArray(project.apis) ? project.apis : [],
-                    credentialNote: project.credentialNote || '',
-                    notes: project.notes || '',
-                    createdAt: project.createdAt || new Date().toISOString(),
-                    updatedAt: project.updatedAt || new Date().toISOString()
-                }));
-                
-                saveProjects(validProjects);
-                DOM.importTextarea.value = '';
-                renderDashboard();
-                renderProjectsList();
-                populateTechFilter();
-                
-                showToast(`Successfully imported ${validProjects.length} project(s)!`, 'success');
-            }
-        );
-    } catch (error) {
-        console.error('Import error:', error);
-        showToast('Invalid JSON format. Please check your data.', 'error');
-    }
-}
-
-
 // ============================================================
-// SECTION 12: TOAST NOTIFICATIONS
-// Show temporary success/error messages
+// TOAST
 // ============================================================
 
 function showToast(message, type = 'info') {
@@ -1399,13 +1331,54 @@ function showToast(message, type = 'info') {
     }, 3000);
 }
 
-
 // ============================================================
-// SECTION 13: EVENT LISTENERS
-// Connect UI elements to functions
+// EVENT LISTENERS
 // ============================================================
 
 function setupEventListeners() {
+    // Login events
+    DOM.signupForm?.addEventListener('submit', (e) => {
+        e.preventDefault();
+        const email = document.getElementById('signupEmail').value;
+        const password = document.getElementById('signupPassword').value;
+        signUpWithEmail(email, password);
+    });
+    
+    DOM.signinForm?.addEventListener('submit', (e) => {
+        e.preventDefault();
+        const email = document.getElementById('signinEmail').value;
+        const password = document.getElementById('signinPassword').value;
+        signInWithEmail(email, password);
+    });
+    
+    DOM.googleSignInBtn?.addEventListener('click', signInWithGoogle);
+    
+    DOM.toggleFormBtn?.addEventListener('click', () => {
+        const isSignUp = DOM.signupForm.style.display !== 'none';
+        
+        if (isSignUp) {
+            DOM.signupForm.style.display = 'none';
+            DOM.signinForm.style.display = 'block';
+            DOM.toggleText.textContent = "Don't have an account?";
+            DOM.toggleFormBtn.textContent = 'Sign Up';
+        } else {
+            DOM.signupForm.style.display = 'block';
+            DOM.signinForm.style.display = 'none';
+            DOM.toggleText.textContent = 'Already have an account?';
+            DOM.toggleFormBtn.textContent = 'Sign In';
+        }
+        
+        hideLoginError();
+    });
+    
+    DOM.logoutBtn?.addEventListener('click', () => {
+        showConfirmDialog(
+            'Sign Out?',
+            'Are you sure you want to sign out?',
+            signOut
+        );
+    });
+    
     // Navigation
     DOM.navLinks.forEach(link => {
         link.addEventListener('click', (e) => {
@@ -1420,45 +1393,43 @@ function setupEventListeners() {
     });
     
     // Mobile sidebar
-    DOM.mobileMenuBtn.addEventListener('click', openSidebar);
-    DOM.sidebarCloseBtn.addEventListener('click', closeSidebar);
-    DOM.sidebarOverlay.addEventListener('click', closeSidebar);
+    DOM.mobileMenuBtn?.addEventListener('click', openSidebar);
+    DOM.sidebarCloseBtn?.addEventListener('click', closeSidebar);
+    DOM.sidebarOverlay?.addEventListener('click', closeSidebar);
     
     // Theme
-    DOM.themeToggle.addEventListener('click', toggleTheme);
+    DOM.themeToggle?.addEventListener('click', toggleTheme);
     DOM.themeOptions.forEach(option => {
         option.addEventListener('click', () => {
             setTheme(option.dataset.theme);
         });
     });
     
-    // Add project buttons
-    DOM.headerAddBtn.addEventListener('click', openAddModal);
-    DOM.dashboardAddBtn.addEventListener('click', openAddModal);
-    DOM.projectsAddBtn.addEventListener('click', openAddModal);
-    DOM.emptyAddBtn.addEventListener('click', openAddModal);
+    // Add project
+    DOM.headerAddBtn?.addEventListener('click', openAddModal);
+    DOM.dashboardAddBtn?.addEventListener('click', openAddModal);
+    DOM.projectsAddBtn?.addEventListener('click', openAddModal);
+    DOM.emptyAddBtn?.addEventListener('click', openAddModal);
     
     // Project modal
-    DOM.modalCloseBtn.addEventListener('click', closeProjectModal);
-    DOM.modalCancelBtn.addEventListener('click', closeProjectModal);
-    DOM.projectModal.addEventListener('click', (e) => {
+    DOM.modalCloseBtn?.addEventListener('click', closeProjectModal);
+    DOM.modalCancelBtn?.addEventListener('click', closeProjectModal);
+    DOM.projectModal?.addEventListener('click', (e) => {
         if (e.target === DOM.projectModal) closeProjectModal();
     });
-    DOM.projectForm.addEventListener('submit', handleProjectFormSubmit);
-    DOM.projectTechStack.addEventListener('input', renderTagsPreview);
-    DOM.addAccountBtn.addEventListener('click', () => addAccountRow());
-    DOM.addApiBtn.addEventListener('click', () => addApiRow());
+    DOM.projectForm?.addEventListener('submit', handleProjectFormSubmit);
+    DOM.projectTechStack?.addEventListener('input', renderTagsPreview);
+    DOM.addAccountBtn?.addEventListener('click', () => addAccountRow());
+    DOM.addApiBtn?.addEventListener('click', () => addApiRow());
     
-    DOM.modalDeleteBtn.addEventListener('click', () => {
+    DOM.modalDeleteBtn?.addEventListener('click', () => {
         if (currentProjectId) {
             showConfirmDialog(
                 'Delete Project?',
                 'Are you sure you want to delete this project? This action cannot be undone.',
-                () => {
-                    deleteProject(currentProjectId);
+                async () => {
+                    await deleteProject(currentProjectId);
                     closeProjectModal();
-                    renderDashboard();
-                    renderProjectsList();
                     showToast('Project deleted', 'success');
                 }
             );
@@ -1466,37 +1437,35 @@ function setupEventListeners() {
     });
     
     // View modal
-    DOM.viewModalCloseBtn.addEventListener('click', closeViewModal);
-    DOM.viewModalClose2Btn.addEventListener('click', closeViewModal);
-    DOM.viewModal.addEventListener('click', (e) => {
+    DOM.viewModalCloseBtn?.addEventListener('click', closeViewModal);
+    DOM.viewModalClose2Btn?.addEventListener('click', closeViewModal);
+    DOM.viewModal?.addEventListener('click', (e) => {
         if (e.target === DOM.viewModal) closeViewModal();
     });
     
-    DOM.viewEditBtn.addEventListener('click', () => {
+    DOM.viewEditBtn?.addEventListener('click', () => {
         closeViewModal();
         openEditModal(currentProjectId);
     });
     
-    DOM.viewDeleteBtn.addEventListener('click', () => {
+    DOM.viewDeleteBtn?.addEventListener('click', () => {
         showConfirmDialog(
             'Delete Project?',
             'Are you sure you want to delete this project? This action cannot be undone.',
-            () => {
-                deleteProject(currentProjectId);
+            async () => {
+                await deleteProject(currentProjectId);
                 closeViewModal();
-                renderDashboard();
-                renderProjectsList();
                 showToast('Project deleted', 'success');
             }
         );
     });
     
     // Confirm modal
-    DOM.confirmCancelBtn.addEventListener('click', closeConfirmDialog);
-    DOM.confirmModal.addEventListener('click', (e) => {
+    DOM.confirmCancelBtn?.addEventListener('click', closeConfirmDialog);
+    DOM.confirmModal?.addEventListener('click', (e) => {
         if (e.target === DOM.confirmModal) closeConfirmDialog();
     });
-    DOM.confirmDeleteBtn.addEventListener('click', () => {
+    DOM.confirmDeleteBtn?.addEventListener('click', () => {
         if (confirmCallback) {
             confirmCallback();
         }
@@ -1504,30 +1473,16 @@ function setupEventListeners() {
     });
     
     // Search & filter
-    DOM.searchInput.addEventListener('input', debounce(handleSearch, 300));
-    DOM.searchClear.addEventListener('click', clearSearch);
-    DOM.statusFilter.addEventListener('change', renderProjectsList);
-    DOM.techFilter.addEventListener('change', renderProjectsList);
+    DOM.searchInput?.addEventListener('input', debounce(handleSearch, 300));
+    DOM.searchClear?.addEventListener('click', clearSearch);
+    DOM.statusFilter?.addEventListener('change', renderProjectsList);
+    DOM.techFilter?.addEventListener('change', renderProjectsList);
     
     // Export
-    DOM.exportBtn.addEventListener('click', exportToJson);
-    DOM.copyJsonBtn.addEventListener('click', copyJsonToClipboard);
-    
-    // Import
-    DOM.fileDropZone.addEventListener('click', () => DOM.importFileInput.click());
-    DOM.importFileInput.addEventListener('change', handleFileSelect);
-    DOM.fileDropZone.addEventListener('dragover', (e) => {
-        e.preventDefault();
-        DOM.fileDropZone.classList.add('dragover');
-    });
-    DOM.fileDropZone.addEventListener('dragleave', () => {
-        DOM.fileDropZone.classList.remove('dragover');
-    });
-    DOM.fileDropZone.addEventListener('drop', handleFileDrop);
-    DOM.importBtn.addEventListener('click', importData);
+    DOM.exportBtn?.addEventListener('click', exportToJson);
     
     // Delete all
-    DOM.deleteAllBtn.addEventListener('click', () => {
+    DOM.deleteAllBtn?.addEventListener('click', () => {
         const projectCount = getProjects().length;
         
         if (projectCount === 0) {
@@ -1538,199 +1493,33 @@ function setupEventListeners() {
         showConfirmDialog(
             'Delete All Projects?',
             `This will permanently delete all ${projectCount} project(s). This cannot be undone!`,
-            () => {
-                deleteAllProjects();
-                renderDashboard();
-                renderProjectsList();
+            async () => {
+                await deleteAllProjects();
                 showToast('All projects deleted', 'success');
             }
         );
     });
     
-    // === GITHUB SYNC EVENT LISTENERS ===
-    
-    // Save GitHub token
-    DOM.saveTokenBtn?.addEventListener('click', () => {
-        const token = DOM.githubTokenInput.value.trim();
-        
-        if (!token) {
-            showToast('Please enter a GitHub token', 'warning');
-            return;
-        }
-        
-        // Basic validation (GitHub tokens start with ghp_ or github_pat_)
-        if (!token.startsWith('ghp_') && !token.startsWith('github_pat_')) {
-            showToast('Invalid token format. Make sure you copied it correctly.', 'error');
-            return;
-        }
-        
-        saveGithubToken(token);
-        DOM.githubTokenInput.value = '';
-        updateSyncStatus();
-        showToast('GitHub token saved! You can now sync to cloud.', 'success');
-    });
-    
-    // Toggle token visibility
-    DOM.toggleTokenBtn?.addEventListener('click', () => {
-        const input = DOM.githubTokenInput;
-        const icon = DOM.toggleTokenBtn.querySelector('i');
-        
-        if (input.type === 'password') {
-            input.type = 'text';
-            icon.setAttribute('data-lucide', 'eye-off');
-        } else {
-            input.type = 'password';
-            icon.setAttribute('data-lucide', 'eye');
-        }
-        
-        lucide.createIcons();
-    });
-    
-    // Disconnect GitHub
-    DOM.disconnectBtn?.addEventListener('click', () => {
-        showConfirmDialog(
-            'Disconnect GitHub?',
-            'This will remove your GitHub token. Your local data will not be affected, but you won\'t be able to sync until you set up a new token.',
-            () => {
-                removeGithubToken();
-                updateSyncStatus();
-                showToast('GitHub disconnected', 'info');
-            }
-        );
-    });
-    
-    // Upload to cloud
-    DOM.uploadBtn?.addEventListener('click', async () => {
-        const btn = DOM.uploadBtn;
-        const originalHtml = btn.innerHTML;
-        
-        btn.disabled = true;
-        btn.innerHTML = '<span class="sync-loading"><i data-lucide="loader"></i> Uploading...</span>';
-        lucide.createIcons();
-        
-        await uploadToGist();
-        
-        btn.disabled = false;
-        btn.innerHTML = originalHtml;
-        lucide.createIcons();
-    });
-    
-    // Download from cloud
-    DOM.downloadBtn?.addEventListener('click', async () => {
-        const btn = DOM.downloadBtn;
-        const originalHtml = btn.innerHTML;
-        
-        btn.disabled = true;
-        btn.innerHTML = '<span class="sync-loading"><i data-lucide="loader"></i> Downloading...</span>';
-        lucide.createIcons();
-        
-        await downloadFromGist();
-        
-        btn.disabled = false;
-        btn.innerHTML = originalHtml;
-        lucide.createIcons();
-    });
-    
     // Keyboard shortcuts
     document.addEventListener('keydown', (e) => {
         if (e.key === 'Escape') {
-            if (DOM.confirmModal.classList.contains('active')) {
+            if (DOM.confirmModal?.classList.contains('active')) {
                 closeConfirmDialog();
-            } else if (DOM.viewModal.classList.contains('active')) {
+            } else if (DOM.viewModal?.classList.contains('active')) {
                 closeViewModal();
-            } else if (DOM.projectModal.classList.contains('active')) {
+            } else if (DOM.projectModal?.classList.contains('active')) {
                 closeProjectModal();
-            } else if (DOM.sidebar.classList.contains('open')) {
+            } else if (DOM.sidebar?.classList.contains('open')) {
                 closeSidebar();
             }
         }
         
         if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
             e.preventDefault();
-            navigateTo('projects');
-            DOM.searchInput.focus();
+            if (currentUser) {
+                navigateTo('projects');
+                DOM.searchInput?.focus();
+            }
         }
     });
-}
-
-
-// ============================================================
-// SECTION 14: UTILITY FUNCTIONS
-// Helper functions used throughout the app
-// ============================================================
-
-function escapeHtml(text) {
-    if (!text) return '';
-    
-    const div = document.createElement('div');
-    div.textContent = text;
-    return div.innerHTML;
-}
-
-function formatDate(dateString) {
-    if (!dateString) return 'Unknown';
-    
-    const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', {
-        month: 'short',
-        day: 'numeric',
-        year: 'numeric'
-    });
-}
-
-function formatDateTime(dateString) {
-    if (!dateString) return 'Unknown';
-    
-    const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', {
-        month: 'short',
-        day: 'numeric',
-        year: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit'
-    });
-}
-
-function formatDateForFilename(date) {
-    return date.toISOString().split('T')[0];
-}
-
-/**
- * Format a timestamp as relative time (e.g., "2 minutes ago")
- * @param {string} dateString - ISO date string
- * @returns {string} Relative time string
- */
-function formatRelativeTime(dateString) {
-    if (!dateString) return 'Never';
-    
-    const now = new Date();
-    const date = new Date(dateString);
-    const seconds = Math.floor((now - date) / 1000);
-    
-    if (seconds < 60) return 'Just now';
-    
-    const minutes = Math.floor(seconds / 60);
-    if (minutes < 60) return `${minutes} minute${minutes > 1 ? 's' : ''} ago`;
-    
-    const hours = Math.floor(minutes / 60);
-    if (hours < 24) return `${hours} hour${hours > 1 ? 's' : ''} ago`;
-    
-    const days = Math.floor(hours / 24);
-    if (days < 30) return `${days} day${days > 1 ? 's' : ''} ago`;
-    
-    return formatDate(dateString);
-}
-
-function debounce(func, wait) {
-    let timeout;
-    
-    return function executedFunction(...args) {
-        const later = () => {
-            clearTimeout(timeout);
-            func(...args);
-        };
-        
-        clearTimeout(timeout);
-        timeout = setTimeout(later, wait);
-    };
 }
