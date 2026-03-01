@@ -1523,3 +1523,116 @@ function setupEventListeners() {
         }
     });
 }
+// ============================================================
+// PWA SERVICE WORKER REGISTRATION
+// ============================================================
+
+/**
+ * Register service worker for PWA functionality
+ */
+if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/project-vault/service-worker.js')
+            .then((registration) => {
+                console.log('✅ Service Worker registered successfully:', registration.scope);
+                
+                // Check for updates periodically
+                setInterval(() => {
+                    registration.update();
+                }, 60000); // Check every minute
+            })
+            .catch((error) => {
+                console.log('❌ Service Worker registration failed:', error);
+            });
+    });
+}
+
+/**
+ * Handle install prompt for PWA
+ */
+let deferredPrompt;
+
+window.addEventListener('beforeinstallprompt', (e) => {
+    console.log('💾 PWA install prompt available');
+    
+    // Prevent the mini-infobar from appearing on mobile
+    e.preventDefault();
+    
+    // Stash the event so it can be triggered later
+    deferredPrompt = e;
+    
+    // Show a custom install button/banner (optional)
+    showInstallPromotion();
+});
+
+/**
+ * Show install promotion (optional feature)
+ */
+function showInstallPromotion() {
+    // Only show if user is logged in
+    if (!currentUser) return;
+    
+    // Show a toast notification
+    setTimeout(() => {
+        if (typeof showToast === 'function') {
+            showToast('💡 Tip: Install this app for a better experience!', 'info');
+        }
+    }, 3000); // Show 3 seconds after page load
+}
+
+/**
+ * Install the app (you can connect this to a button later)
+ */
+async function installApp() {
+    if (!deferredPrompt) {
+        console.log('Install prompt not available');
+        return;
+    }
+    
+    // Show the install prompt
+    deferredPrompt.prompt();
+    
+    // Wait for the user's response
+    const { outcome } = await deferredPrompt.userChoice;
+    
+    console.log(`User response to install prompt: ${outcome}`);
+    
+    // Clear the deferredPrompt for later use
+    deferredPrompt = null;
+}
+
+/**
+ * Detect when app is installed
+ */
+window.addEventListener('appinstalled', () => {
+    console.log('✅ PWA was installed successfully');
+    
+    if (typeof showToast === 'function') {
+        showToast('App installed successfully! 🎉', 'success');
+    }
+    
+    // Clear the deferredPrompt
+    deferredPrompt = null;
+});
+
+/**
+ * Detect if app is running in standalone mode (installed)
+ */
+function isInstalled() {
+    // For iOS
+    if (window.navigator.standalone === true) {
+        return true;
+    }
+    
+    // For Android
+    if (window.matchMedia('(display-mode: standalone)').matches) {
+        return true;
+    }
+    
+    return false;
+}
+
+// Log if running as installed app
+if (isInstalled()) {
+    console.log('✅ Running as installed PWA');
+}
